@@ -21,8 +21,9 @@ namespace JonGame.Engine
         {
             Entity mEntity = new Entity(X, Y, mGame);
             mEntity.Texture = mGame.Content.Load<Texture2D>("Sprites/Ball");
-            mEntity.HSpeed = mRandDir.Next(-50, 50);
-            mEntity.VSpeed = mRandDir.Next(-50, 50);
+            mEntity.AddComponent(new Components.BallComponent(mEntity));
+            (mEntity.GetComponent<Components.BallComponent>() as Components.BallComponent).HSpeed = mRandDir.Next(-50, 50);
+            (mEntity.GetComponent<Components.BallComponent>() as Components.BallComponent).VSpeed = mRandDir.Next(-50, 50);
             mGame.EntityManager.AddEntity(mEntity);
             return 0;
         }

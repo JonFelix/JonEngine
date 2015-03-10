@@ -45,8 +45,8 @@ namespace JonGame.Engine
                     {
                         if (mCheckEntity.IsCollidable)
                         {
-                            if (Vector2.Distance(new Vector2(mCurrentEntity.X + (mCurrentEntity.Texture.Width / 2), mCurrentEntity.Y + (mCurrentEntity.Texture.Height / 2)),
-                                                new Vector2(mCheckEntity.X + (mCheckEntity.Texture.Width / 2), mCheckEntity.Y + (mCheckEntity.Texture.Height / 2))) <= mCurrentEntity.Texture.Width)
+                            if (Vector2.Distance(new Vector2(mCurrentEntity.Transformation.Position.X + (mCurrentEntity.Texture.Width / 2), mCurrentEntity.Transformation.Position.Y + (mCurrentEntity.Texture.Height / 2)),
+                                                new Vector2(mCheckEntity.Transformation.Position.X + (mCheckEntity.Texture.Width / 2), mCheckEntity.Transformation.Position.Y + (mCheckEntity.Texture.Height / 2))) <= mCurrentEntity.Texture.Width)
                             {
                                 mCurrentEntity.CollisionList = new[] { mCheckEntity };
                                 mCheckEntity.CollisionList = new[] { mCurrentEntity };

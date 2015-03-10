@@ -35,6 +35,9 @@
     <ApplicationIcon>Icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Engine\Component.cs" />
+    <Compile Include="Engine\Components\BallComponent.cs" />
+    <Compile Include="Engine\Components\Transformation.cs" />
     <Compile Include="Engine\Entity.cs" />
     <Compile Include="Engine\EntityCreator.cs" />
     <Compile Include="Engine\EntityManager.cs" />

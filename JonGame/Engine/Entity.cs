@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -16,13 +14,12 @@ namespace JonGame.Engine
         Game1 mGame;
         bool mIsActive = false;
         bool mIsInitialized = false;
-        Vector2 mPosition;
-        Vector2 mSpeed;
         Texture2D mTexture;
         List<Entity> mCollisionList;
         bool mIsCollidable;
-        bool mIsClicked;
-        int mIsClickedTimer;
+        
+        Component mFirstComponent;
+        Components.Transformation mTransformation;
 
         public Entity Next
         {
@@ -56,11 +53,23 @@ namespace JonGame.Engine
             }
         }
 
+        public Game1 Game
+        {
+            get
+            {
+                return mGame;
+            }
+        }
+
         public bool IsActive
         {
             get
             {
                 return mIsActive;
+            }
+            set
+            {
+                mIsActive = value;
             }
         }
 
@@ -69,54 +78,6 @@ namespace JonGame.Engine
             get
             {
                 return mIsInitialized;
-            }
-        }
-
-        public float X
-        {
-            get
-            {
-                return mPosition.X;
-            }
-            set
-            {
-                mPosition.X = (float)value;
-            }
-        }
-
-        public float Y
-        {
-            get
-            {
-                return mPosition.Y;
-            }
-            set
-            {
-                mPosition.Y = (float)value;
-            }
-        }
-
-        public float HSpeed
-        {
-            get
-            {
-                return mSpeed.X;
-            }
-            set
-            {
-                mSpeed.X = (float)value;
-            }
-        }
-
-        public float VSpeed
-        {
-            get
-            {
-                return mSpeed.Y;
-            }
-            set
-            {
-                mSpeed.Y = (float)value;
             }
         }
 
@@ -150,14 +111,36 @@ namespace JonGame.Engine
             {
                 return mIsCollidable;
             }
+            set
+            {
+                mIsCollidable = value;
+            }
         }
 
-        public Entity(int X, int Y, Game1 Game)
+        public Component FirstComponent
         {
-            mGame = Game;
+            get
+            {
+                return mFirstComponent;
+            }
+        }
+
+        public Components.Transformation Transformation
+        {
+            get
+            {
+                return mTransformation;
+            }
+        }
+
+        public Entity(int X, int Y, Game1 game)
+        {
+            mGame = game;
             mID = ID;
-            mPosition.X = X;
-            mPosition.Y = Y;
+            mFirstComponent = new Components.Transformation(this, null);
+            mTransformation = (Components.Transformation)mFirstComponent;
+            Transformation.X = X;
+            Transformation.Y = Y;
             mCollisionList = new System.Collections.Generic.List<Entity>();
         }
 
@@ -172,43 +155,27 @@ namespace JonGame.Engine
 
         public int Update(GameTime gameTime)
         {
-            if (!mIsClicked)
+            Component mCurrentComponent = mFirstComponent;
+            int mError = 0;
+            while (mCurrentComponent != null)
             {
-                ApplyCollision();
-                
-                Click();
-                
-                mCollisionList = new List<Entity>();
-            }
-            else
-            {
-                mIsClickedTimer += gameTime.ElapsedGameTime.Milliseconds;
-                if(mIsClickedTimer >= 25)
+                if (!mCurrentComponent.IsActive)
                 {
-                    mIsClickedTimer = 0;
-                    if (mTexture.Name == "Sprites/Ball")
+                    if (!mCurrentComponent.IsInitialized)
                     {
-                        mTexture = mGame.Content.Load<Texture2D>("Sprites/Ball1");
+                        mError += mCurrentComponent.Init();
                     }
-                    else if (mTexture.Name == "Sprites/Ball1")
+                    else
                     {
-                        mTexture = mGame.Content.Load<Texture2D>("Sprites/Ball2");
-                    }
-                    else if (mTexture.Name == "Sprites/Ball2")
-                    {
-                        mTexture = mGame.Content.Load<Texture2D>("Sprites/Ball3");
-                    }
-                    else if (mTexture.Name == "Sprites/Ball3")
-                    {
-                        mTexture = mGame.Content.Load<Texture2D>("Sprites/Ball4");
-                    }
-                    else if (mTexture.Name == "Sprites/Ball4")
-                    {
-                        mIsActive = false;
+                        mCurrentComponent = DeleteComponent(mCurrentComponent);
                     }
                 }
+                if (mCurrentComponent != null)
+                {
+                    mError += mCurrentComponent.Update(gameTime);
+                    mCurrentComponent = mCurrentComponent.Next;
+                }
             }
-            mPosition += mSpeed * (float)(gameTime.ElapsedGameTime.Milliseconds * .01);
             return 0;
         }
 
@@ -216,58 +183,85 @@ namespace JonGame.Engine
         {
             if (mTexture != null)
             {
-                mGame.SpriteBatch.Draw(mTexture, mPosition, Color.White);
+                mGame.SpriteBatch.Draw(mTexture, Transformation.Position, Color.White);
             }
             return 0;
         }
 
-        public int ApplyCollision()
+        public Component DeleteComponent(Component component)
         {
-            for (int i = 0; i < CollisionList.Length; i++)
+            Component mReturnedComponent = null;
+            if (component == mFirstComponent)
             {
-                mSpeed.X = mPosition.X - CollisionList[i].X;
-                mSpeed.Y = mPosition.Y - CollisionList[i].Y;
+                if (mFirstComponent.Next != null)
+                {
+                    mFirstComponent = mFirstComponent.Next;
+                    mFirstComponent.Previous = null;
+                }
+                else
+                {
+                    mFirstComponent = null;
+                }
+            }
+            else
+            {
+                if (component.Previous != null)
+                {
+                    component.Previous.Next = component.Next;
+                }
+                if (component.Next != null)
+                {
+                    component.Next.Previous = component.Previous;
+                }
+                mReturnedComponent = component.Previous;
+                component.Next = null;
+                component.Previous = null;
+            }
+            return mReturnedComponent;
+        }
 
-                if (Vector2.Distance(mPosition, new Vector2(CollisionList[i].X, CollisionList[i].Y)) <= mTexture.Width)
+        public Component GetComponent<t>()
+        {
+            Component mCurrentComponent = mFirstComponent;
+            while (mCurrentComponent != null)
+            {
+                if (mCurrentComponent is t)
                 {
+                    return mCurrentComponent;
+                }
+                mCurrentComponent = mCurrentComponent.Next;
+            }
+            return null;
+        }
 
-                }
-            }
-            if (mPosition.Y + mTexture.Height >= mGame.Height || mPosition.Y <= 0)
+        public int AddComponent(Component component)
+        {
+            Component mCurrentEntity = mFirstComponent;
+            while (mCurrentEntity.Next != null)
             {
-                mSpeed.Y *= -1;
-                if (mPosition.Y < 0)
-                {
-                    mPosition.Y = 0;
-                }
-                else if (mPosition.Y > mGame.Height - mTexture.Height)
-                {
-                    mPosition.Y = mGame.Height - mTexture.Height;
-                }
+                mCurrentEntity = mCurrentEntity.Next;
             }
-            if (mPosition.X + mTexture.Width >= mGame.Width || mPosition.X <= 0)
-            {
-                mSpeed.X *= -1;
-                if (mPosition.X < 0)
-                {
-                    mPosition.X = 0;
-                }
-                else if (mPosition.X > mGame.Width - mTexture.Width)
-                {
-                    mPosition.X = mGame.Width - mTexture.Width;
-                }
-            }
+            mCurrentEntity.Next = component;
             return 0;
         }
-        
-        public int Click()
+
+        public Component LastComponent()
         {
-            if(Vector2.Distance(new Vector2(mPosition.X + (mTexture.Width / 2), mPosition.Y + (mTexture.Height / 2)), new Vector2(Mouse.GetState().X, Mouse.GetState().Y)) <= (mTexture.Width / 2))
+            Component mCurrentComponent = mFirstComponent;
+            if(mCurrentComponent == null)
             {
-                mIsClicked = true;
-                mIsCollidable = false;
-                mGame.Interface.RemoveCounter = 1;
+                return null;
             }
+            while(mCurrentComponent.Next != null)
+            {
+                mCurrentComponent = mCurrentComponent.Next;
+            }
+            return mCurrentComponent;
+        }
+
+        public int ResetCollisionList()
+        {
+            mCollisionList = new List<Entity>();
             return 0;
         }
     }
